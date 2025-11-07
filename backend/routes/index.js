@@ -15,11 +15,11 @@ const updateProductController = require("../controller/product/updateProduct");
 const getCategoryProduct = require("../controller/product/getCategoryProductOne");
 const getCategoryWiseProduct = require("../controller/product/getCategoryWiseProduct");
 const getProductDetails = require("../controller/product/getProductDetails");
-const addToCartController = require("../controller/user/addToCartController ");
+const addToCartController = require("../controller/user/addToCartController");
 const countAddToCartProduct = require("../controller/user/countAddToCartProduct");
 const addToCartViewProduct = require("../controller/user/addToCartViewProduct");
 const updateAddToCartProduct = require("../controller/user/updateAddToCartProduct");
-const deleteAddToCartProduct = require("../controller/user/deleteAddToCartProduct ");
+const deleteAddToCartProduct = require("../controller/user/deleteAddToCartProduct");
 const searchProduct = require("../controller/product/searchProduct");
 const filterProductController = require("../controller/product/filterProduct");
 const deleteProductController = require("../controller/product/deleteProductController");
@@ -30,6 +30,7 @@ const getAllOrders = require("../controller/user/getAllOrders");
 const deleteUser = require("../controller/user/deleteUser");
 const MyOder = require("../controller/user/Oder");
 const deleteOrder = require("../controller/user/deleteOrder");
+const updateOrderStatus = require("../controller/product/updateOrderStatus");
 const {
   forgotPassword,
   resetPassword,
@@ -71,10 +72,13 @@ router.post("/update-cart-product", authToken, updateAddToCartProduct);
 router.post("/delete-cart-product", authToken, deleteAddToCartProduct);
 router.get("/user/:userId", MyOder);
 router.delete("/orders/:id", deleteOrder);
+
 // forgotpass
 router.post("/forgot-password", forgotPassword);
 router.post("/verify-otp", verifyOTP);
 router.post("/reset-password", resetPassword);
 router.post("/change-password", authToken, changePassword);
+// Thay đổi dòng sau (hiện tại bạn dùng POST)
+router.put("/orders/:id/status", updateOrderStatus);
 
 module.exports = router;

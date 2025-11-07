@@ -19,7 +19,7 @@ const searchProduct = async (req, res) => {
 
     res.json({
       data: product,
-      message: "Danh sách sản phẩm tìm kiếm",
+      message: "Tìm kiếm danh sách sản phẩm",
       error: false,
       success: true,
     });

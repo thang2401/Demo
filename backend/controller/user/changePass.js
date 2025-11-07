@@ -3,7 +3,7 @@ const userModel = require("../../models/userModel");
 
 // Regex kiểm tra mật khẩu mạnh
 const strongPasswordRegex =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>\/?]).{6,}$/;
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>\/?]).{12,}$/;
 
 const changePassword = async (req, res) => {
   try {
@@ -19,10 +19,10 @@ const changePassword = async (req, res) => {
     }
 
     // Kiểm tra độ mạnh mật khẩu mới
-    if (newPassword.length < 6) {
+    if (newPassword.length < 12) {
       return res.status(400).json({
         success: false,
-        message: "Mật khẩu mới phải có ít nhất 6 ký tự!",
+        message: "Mật khẩu mới phải có ít nhất 12 ký tự!",
       });
     }
 
@@ -49,6 +49,15 @@ const changePassword = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Mật khẩu cũ không đúng!",
+      });
+    }
+
+    // 🔒 Kiểm tra mật khẩu mới không trùng mật khẩu cũ
+    const isSameAsOld = await bcrypt.compare(newPassword, user.password);
+    if (isSameAsOld) {
+      return res.status(400).json({
+        success: false,
+        message: "Mật khẩu mới không được trùng với mật khẩu cũ!",
       });
     }
 

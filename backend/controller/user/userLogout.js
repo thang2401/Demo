@@ -3,7 +3,7 @@ async function userLogout(req, res) {
     res.clearCookie("token");
 
     res.json({
-      message: "Đăng xuất thành công",
+      message: "Đăng xuất thành công!",
       error: false,
       success: true,
       data: [],

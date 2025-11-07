@@ -7,19 +7,21 @@ async function userSignInController(req, res) {
     const { email, password } = req.body;
 
     if (!email) {
-      throw new Error("Vui lòng nhập email của bạn!");
+      throw new Error("Vui lòng cung email");
     }
     if (!password) {
-      throw new Error("Vui lòng nhập mật khẩu của bạn");
+      throw new Error("Vui lòng cung mật khẩu");
     }
 
     const user = await userModel.findOne({ email });
 
     if (!user) {
-      throw new Error("Tài khoản không tồn tại");
+      throw new Error("Người dùng khôn tồn tại");
     }
 
     const checkPassword = await bcrypt.compare(password, user.password);
+
+    console.log("checkPassoword", checkPassword);
 
     if (checkPassword) {
       const tokenData = {
@@ -36,13 +38,13 @@ async function userSignInController(req, res) {
       };
 
       res.cookie("token", token, tokenOption).status(200).json({
-        message: "Đăng nhập thành công",
+        message: "Đăng nhập thành công!",
         data: token,
         success: true,
         error: false,
       });
     } else {
-      throw new Error("Vui lòng xem lại mật khẩu");
+      throw new Error("Mật khẩu không đúng!");
     }
   } catch (err) {
     res.json({

@@ -20,7 +20,7 @@ async function updateUser(req, res) {
 
     res.json({
       data: updateUser,
-      message: "Cập nhật thành công",
+      message: "Đã cập nhật người dùng",
       success: true,
       error: false,
     });

@@ -6,14 +6,14 @@ async function UploadProductController(req, res) {
     const sessionUserId = req.userId;
 
     if (!uploadProductPermission(sessionUserId)) {
-      throw new Error("Lỗi");
+      throw new Error("Permission denied");
     }
 
     const uploadProduct = new productModel(req.body);
     const saveProduct = await uploadProduct.save();
 
     res.status(201).json({
-      message: "Sản phẩm đã được tải lên thành công",
+      message: "Tải sản phẩm lên thành công",
       error: false,
       success: true,
       data: saveProduct,

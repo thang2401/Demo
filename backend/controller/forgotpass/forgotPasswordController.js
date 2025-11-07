@@ -59,13 +59,13 @@ const resetPassword = async (req, res) => {
 
     // Kiểm tra độ mạnh mật khẩu
     const strongPasswordRegex =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>\/?]).{6,}$/;
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{12,}$/;
 
     if (!strongPasswordRegex.test(newPassword)) {
       return res.json({
         success: false,
         message:
-          "Mật khẩu phải có ít nhất 6 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt.",
+          "Mật khẩu phải dài ít nhất 12 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt.",
       });
     }
 

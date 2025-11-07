@@ -12,7 +12,7 @@ const filterProductController = async (req, res) => {
 
     res.json({
       data: product,
-      message: "Sản Phẩm",
+      message: "Sản phẩm",
       error: false,
       success: true,
     });

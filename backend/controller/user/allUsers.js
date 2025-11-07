@@ -1,21 +1,24 @@
-const userModel = require("../../models/userModel");
+const userModel = require("../../models/userModel")
 
-async function getAllUsers(req, res) {
-  try {
-    const users = await userModel.find().sort({ createdAt: -1 });
-    res.json({
-      message: "Lấy danh sách người dùng thành công",
-      success: true,
-      error: false,
-      data: users,
-    });
-  } catch (err) {
-    res.status(500).json({
-      message: "Lỗi khi lấy danh sách người dùng",
-      success: false,
-      error: true,
-    });
-  }
+async function allUsers(req,res){
+    try{
+        console.log("userid all Users",req.userId)
+
+        const allUsers = await userModel.find()
+        
+        res.json({
+            message : "All User ",
+            data : allUsers,
+            success : true,
+            error : false
+        })
+    }catch(err){
+        res.status(400).json({
+            message : err.message || err,
+            error : true,
+            success : false
+        })
+    }
 }
 
-module.exports = getAllUsers;
+module.exports = allUsers

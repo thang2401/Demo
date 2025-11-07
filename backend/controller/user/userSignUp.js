@@ -5,62 +5,37 @@ async function userSignUpController(req, res) {
   try {
     const { email, password, name } = req.body;
 
-    function isStrongPassword(password) {
-      const strongPasswordRegex =
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>\/?]).{6,}$/;
-      return strongPasswordRegex.test(password);
-    }
-
+    // Kiểm tra người dùng đã tồn tại
     const user = await userModel.findOne({ email });
     if (user) {
-      return res.status(400).json({
-        success: false,
-        error: true,
-        message: "Tài khoản đã tồn tại.",
-      });
+      throw new Error("Người dùng đã tồn tại");
     }
 
-    // Validate input
-    if (!email) {
-      return res
-        .status(400)
-        .json({ success: false, error: true, message: "Vui lòng nhập email" });
-    }
-    if (!password) {
-      return res.status(400).json({
-        success: false,
-        error: true,
-        message: "Vui lòng nhập mật khẩu",
-      });
-    }
-    if (password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        error: true,
-        message: "Mật khẩu phải trên 6 kí tự",
-      });
-    }
-    if (!isStrongPassword(password)) {
-      return res.status(400).json({
-        success: false,
-        error: true,
-        message:
-          "Mật khẩu phải bao gồm ít nhất 1 chữ hoa, 1 chữ thường, 1 số và 1 ký tự đặc biệt",
-      });
-    }
-    if (!name) {
-      return res
-        .status(400)
-        .json({ success: false, error: true, message: "Vui lòng nhập tên" });
-    }
+    // Kiểm tra dữ liệu đầu vào
+    if (!email) throw new Error("Vui lòng cung cấp email");
+    if (!password) throw new Error("Vui lòng cung cấp mật khẩu");
+    if (!name) throw new Error("Vui lòng cung cấp tên");
 
-    // Hash password
+    // 🔐 Kiểm tra mật khẩu mạnh
+    if (password.length < 12)
+      throw new Error("Mật khẩu phải dài ít nhất 12 ký tự");
+    if (!/[A-Z]/.test(password))
+      throw new Error("Mật khẩu phải có ít nhất 1 chữ hoa");
+    if (!/[a-z]/.test(password))
+      throw new Error("Mật khẩu phải có ít nhất 1 chữ thường");
+    if (!/[0-9]/.test(password))
+      throw new Error("Mật khẩu phải có ít nhất 1 số");
+    if (!/[\W_]/.test(password))
+      throw new Error("Mật khẩu phải có ít nhất 1 ký tự đặc biệt");
+
+    // Mã hóa mật khẩu
     const salt = bcrypt.genSaltSync(10);
     const hashPassword = bcrypt.hashSync(password, salt);
 
-    // Lưu user
+    // Tạo payload lưu vào DB
     const payload = {
-      ...req.body,
+      name,
+      email,
       role: "GENERAL",
       password: hashPassword,
     };
@@ -72,10 +47,10 @@ async function userSignUpController(req, res) {
       data: saveUser,
       success: true,
       error: false,
-      message: "Tạo tài khoản thành công!",
+      message: "Đăng kí thành công!",
     });
   } catch (err) {
-    res.json({
+    res.status(400).json({
       message: err.message || err,
       error: true,
       success: false,

@@ -9,7 +9,7 @@ async function userDetailsController(req, res) {
       data: user,
       error: false,
       success: true,
-      message: "User details",
+      message: "Chi tiết người dùng",
     });
 
     console.log("user", user);

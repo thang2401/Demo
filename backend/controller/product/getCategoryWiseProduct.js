@@ -7,7 +7,7 @@ const getCategoryWiseProduct = async (req, res) => {
 
     res.json({
       data: product,
-      message: "Sản Phẩm",
+      message: "Sản phẩm",
       success: true,
       error: false,
     });

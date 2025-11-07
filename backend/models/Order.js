@@ -13,7 +13,12 @@ const orderSchema = new mongoose.Schema({
       quantity: Number,
     },
   ],
-  status: { type: String, default: "Chờ xử lý" },
+  status: {
+    type: String,
+    enum: ["đang chờ xử lý", "đã xác nhận", "đang vận chuyển", "đã giao hàng"],
+    default: "đang chờ xử lý",
+  },
+
   createdAt: { type: Date, default: Date.now },
 });
 

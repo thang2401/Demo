@@ -15,7 +15,7 @@ const updateAddToCartProduct = async (req, res) => {
     );
 
     res.json({
-      message: "Cập nhật thành công",
+      message: "Đã cập nhật sản phẩm",
       data: updateProduct,
       error: false,
       success: true,
