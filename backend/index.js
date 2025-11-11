@@ -1,3 +1,4 @@
+// server.js
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
@@ -15,30 +16,37 @@ const router = require("./routes");
 
 const app = express();
 
-/* ============================================================
-    1. CORS
-============================================================ */
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
-    credentials: true,
-  })
-);
+// =======================
+// 1. CORS chuẩn cho React
+// =======================
+const allowedOrigin = ["https://domanhhung.id.vn"];
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", allowedOrigin);
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Credentials", "true");
 
-/* ============================================================
-   2. Middleware bảo mật cơ bản
-============================================================ */
+  if (req.method === "OPTIONS") return res.sendStatus(200);
+  next();
+});
+
+// =======================
+// 2. Middleware bảo mật
+// =======================
 app.use(helmet());
 app.use(mongoSanitize());
 app.use(xss());
 app.use(express.json({ limit: "10kb" }));
 app.use(cookieParser());
 
-/* ============================================================
-3. Giới hạn tốc độ request chống DDoS
-============================================================ */
+// =======================
+// 3. Rate-limit
+// =======================
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: 15 * 60 * 1000, // 15 phút
   max: 100,
   message: {
     success: false,
@@ -47,43 +55,9 @@ const limiter = rateLimit({
 });
 app.use("/api", limiter);
 
-/* ============================================================
-   3.5. WAF cơ bản
-============================================================ */
-app.use((req, res, next) => {
-  const suspiciousPatterns = [
-    "<script>",
-    "DROP TABLE",
-    "UNION SELECT",
-    "1=1",
-    "alert(",
-  ];
-  const bodyString = JSON.stringify(req.body || {});
-  const urlString = req.originalUrl;
-
-  const isSuspicious = suspiciousPatterns.some(
-    (pattern) => bodyString.includes(pattern) || urlString.includes(pattern)
-  );
-
-  if (isSuspicious) {
-    const agent = useragent.parse(req.headers["user-agent"]);
-    logger.warn(
-      ` WAF chặn truy cập nghi ngờ từ IP ${
-        req.ip
-      }, Trình duyệt: ${agent.toString()}, URL: ${req.originalUrl}`
-    );
-    return res.status(403).json({
-      success: false,
-      message: "Yêu cầu của bạn bị hệ thống chặn do nghi ngờ tấn công.",
-    });
-  }
-
-  next();
-});
-
-/* ============================================================
-    4. Logging (Winston + Morgan)
-============================================================ */
+// =======================
+// 3.5 WAF cơ bản
+// =======================
 const logDir = path.join(__dirname, "logs");
 const fs = require("fs");
 if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
@@ -109,20 +83,53 @@ const logger = winston.createLogger({
   ],
 });
 
+app.use((req, res, next) => {
+  const suspiciousPatterns = [
+    "<script>",
+    "DROP TABLE",
+    "UNION SELECT",
+    "1=1",
+    "alert(",
+  ];
+  const bodyString = JSON.stringify(req.body || {});
+  const urlString = req.originalUrl;
+
+  const isSuspicious = suspiciousPatterns.some(
+    (pattern) => bodyString.includes(pattern) || urlString.includes(pattern)
+  );
+
+  if (isSuspicious) {
+    const agent = useragent.parse(req.headers["user-agent"]);
+    logger.warn(
+      `WAF chặn truy cập nghi ngờ từ IP ${
+        req.ip
+      }, Trình duyệt: ${agent.toString()}, URL: ${req.originalUrl}`
+    );
+    return res.status(403).json({
+      success: false,
+      message: "Yêu cầu của bạn bị hệ thống chặn do nghi ngờ tấn công.",
+    });
+  }
+  next();
+});
+
+// =======================
+// 4. Logging
+// =======================
 app.use(
   morgan("combined", {
     stream: { write: (message) => logger.info(message.trim()) },
   })
 );
 
-/* ============================================================
-    5. Routes API
-============================================================ */
+// =======================
+// 5. Routes
+// =======================
 app.use("/api", router);
 
-/* ============================================================
-    6. Middleware xử lý lỗi toàn cục
-============================================================ */
+// =======================
+// 6. Xử lý lỗi toàn cục
+// =======================
 app.use((err, req, res, next) => {
   logger.error(`${err.message} - ${req.originalUrl}`);
   console.error("❌ Lỗi hệ thống:", err);
@@ -132,9 +139,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-/* ============================================================
-   7. Khởi chạy Server & Kết nối Database
-============================================================ */
+// =======================
+// 7. Kết nối DB + chạy server
+// =======================
 const PORT = process.env.PORT || 8080;
 
 (async () => {
@@ -142,7 +149,7 @@ const PORT = process.env.PORT || 8080;
     await connectDB();
     console.log("✅ Kết nối MongoDB thành công");
     app.listen(PORT, () => {
-      console.log(`🚀 Server đang chạy tại cổng ${PORT} (HTTP)`);
+      console.log(`🚀 Server đang chạy tại cổng ${PORT} (HTTP/HTTPS)`);
     });
   } catch (error) {
     logger.error(`❌ Lỗi kết nối MongoDB: ${error.message}`);

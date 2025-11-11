@@ -1,61 +1,126 @@
-const userModel = require("../../models/userModel");
+const User = require("../../models/userModel");
 const bcrypt = require("bcryptjs");
+const { sendOTP } = require("../../untils/sendOTP"); // Đảm bảo đúng đường dẫn
+const jwt = require("jsonwebtoken");
 
-async function userSignUpController(req, res) {
+// --- HÀM 1: GỬI OTP VÀ TẠO BẢN GHI TẠM THỜI (API: /api/send-otp-to-signup) ---
+const sendOtpToSignUpController = async (req, res) => {
   try {
-    const { email, password, name } = req.body;
+    const { email } = req.body;
 
-    // Kiểm tra người dùng đã tồn tại
-    const user = await userModel.findOne({ email });
-    if (user) {
-      throw new Error("Người dùng đã tồn tại");
+    if (!email)
+      return res
+        .status(400)
+        .json({ success: false, message: "Vui lòng nhập Email" });
+
+    // 1. Kiểm tra Email đã tồn tại chưa
+    const existingUser = await User.findOne({ email });
+    if (existingUser && !existingUser.otpSignUp) {
+      // Nếu đã tồn tại và đã xác thực
+      return res
+        .status(409)
+        .json({ success: false, message: "Email đã được sử dụng" });
     }
 
-    // Kiểm tra dữ liệu đầu vào
-    if (!email) throw new Error("Vui lòng cung cấp email");
-    if (!password) throw new Error("Vui lòng cung cấp mật khẩu");
-    if (!name) throw new Error("Vui lòng cung cấp tên");
+    let user;
+    if (existingUser) {
+      user = existingUser;
+    } else {
+      // 2. Tạo bản ghi TẠM THỜI (chỉ có Email)
+      user = new User({ email, otpSignUp: true });
+    }
 
-    // 🔐 Kiểm tra mật khẩu mạnh
-    if (password.length < 12)
-      throw new Error("Mật khẩu phải dài ít nhất 12 ký tự");
-    if (!/[A-Z]/.test(password))
-      throw new Error("Mật khẩu phải có ít nhất 1 chữ hoa");
-    if (!/[a-z]/.test(password))
-      throw new Error("Mật khẩu phải có ít nhất 1 chữ thường");
-    if (!/[0-9]/.test(password))
-      throw new Error("Mật khẩu phải có ít nhất 1 số");
-    if (!/[\W_]/.test(password))
-      throw new Error("Mật khẩu phải có ít nhất 1 ký tự đặc biệt");
+    // 3. Tạo và lưu OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 phút
+    user.otp = otp;
+    user.otpExpires = otpExpires;
+    const saveUser = await user.save();
 
-    // Mã hóa mật khẩu
-    const salt = bcrypt.genSaltSync(10);
-    const hashPassword = bcrypt.hashSync(password, salt);
+    // 4. Gửi Email
+    await sendOTP(email, otp);
 
-    // Tạo payload lưu vào DB
-    const payload = {
-      name,
-      email,
-      role: "GENERAL",
-      password: hashPassword,
-    };
-
-    const userData = new userModel(payload);
-    const saveUser = await userData.save();
-
-    res.status(201).json({
-      data: saveUser,
+    res.status(200).json({
       success: true,
-      error: false,
-      message: "Đăng kí thành công!",
+      message: "Mã xác thực đã gửi tới email. Vui lòng kiểm tra hộp thư.",
+      userId: saveUser._id,
     });
   } catch (err) {
-    res.status(400).json({
-      message: err.message || err,
-      error: true,
-      success: false,
-    });
+    console.error("Lỗi gửi OTP:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Lỗi server khi gửi OTP." });
   }
-}
+};
 
-module.exports = userSignUpController;
+// --- HÀM 2: HOÀN TẤT ĐĂNG KÝ VÀ XÁC THỰC OTP (API: /api/final-signup) ---
+const finalSignUpController = async (req, res) => {
+  try {
+    const { userId, name, email, password, otp } = req.body;
+
+    if (!userId || !name || !email || !password || !otp)
+      return res.status(400).json({
+        success: false,
+        message: "Vui lòng điền đầy đủ thông tin và OTP",
+      });
+
+    const user = await User.findById(userId);
+
+    // 1. Kiểm tra OTP
+    if (!user || user.otp !== otp || user.otpExpires < Date.now()) {
+      // Nếu OTP sai, xóa OTP để người dùng phải gửi lại
+      if (user) {
+        user.otp = null;
+        user.otpExpires = null;
+        await user.save();
+      }
+      return res.status(400).json({
+        success: false,
+        message:
+          "Mã xác thực không hợp lệ hoặc đã hết hạn. Vui lòng gửi lại OTP.",
+      });
+    }
+
+    // 2. Hoàn tất tạo tài khoản
+    const hashPassword = await bcrypt.hash(password, 10);
+
+    user.name = name;
+    user.password = hashPassword;
+    user.otp = null;
+    user.otpExpires = null;
+    user.otpSignUp = false;
+    user.role = "GENERAL";
+
+    // 3. Lưu thông tin người dùng cuối cùng
+    await user.save();
+
+    // 4. Tạo token và đăng nhập
+    const token = jwt.sign({ userId: user._id }, process.env.TOKEN_SECRET_KEY, {
+      expiresIn: "7d",
+    });
+
+    // SỬA LỖI CÚ PHÁP: res.cookie phải đi trước status hoặc ở cuối chuỗi
+    res
+      .cookie("token", token, {
+        httpOnly: true,
+        // Dùng NODE_ENV để tự động kích hoạt secure trên Railway (production)
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "None", // Bắt buộc cho giao tiếp subdomain/cross-site
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      })
+      .status(200)
+      .json({
+        success: true,
+        message: "Đăng ký và xác thực thành công!",
+        data: { name: user.name, email: user.email, role: user.role },
+        token,
+      });
+  } catch (err) {
+    console.error("Lỗi hoàn tất đăng ký:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Lỗi server khi hoàn tất đăng ký." });
+  }
+};
+
+module.exports = { sendOtpToSignUpController, finalSignUpController };
