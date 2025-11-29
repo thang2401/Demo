@@ -2,13 +2,9 @@ const express = require("express");
 
 const router = express.Router();
 
-const {
-  sendOtpToSignUpController,
-  finalSignUpController,
-} = require("../controller/user/userSignUp");
-
 // ... (Các imports khác)
 
+const userSignUpController = require("../controller/user/userSignUp");
 const userSignInController = require("../controller/user/userSignIn");
 const userDetailsController = require("../controller/user/userDetails");
 const authToken = require("../middleware/authToken");
@@ -37,6 +33,8 @@ const ConfirmPayment = require("../controller/user/confirm-payment");
 const getAllOrders = require("../controller/user/getAllOrders");
 const MyOder = require("../controller/user/Oder");
 const deleteOrder = require("../controller/user/deleteOrder");
+const twoFaSetupController = require("../controller/user/twoFaSetupController");
+const twoFaVerifyController = require("../controller/user/twoFaVerifyController");
 
 const searchProduct = require("../controller/product/searchProduct");
 const filterProductController = require("../controller/product/filterProduct");
@@ -48,14 +46,15 @@ const {
 } = require("../controller/forgotpass/forgotPasswordController");
 const { changePassword } = require("../controller/user/changePass");
 
+router.post("/signup", userSignUpController);
+
 // DÒNG BỊ LỖI ĐÃ ĐƯỢC LOẠI BỎ: const verifyOTPController = require("../controller/user/verifyOTPController");
 
 // ============================================================
 // AUTH & USER
 // ============================================================
 // --- ROUTES ĐĂNG KÝ MỚI ---
-router.post("/send-otp-to-signup", sendOtpToSignUpController);
-router.post("/final-signup", finalSignUpController);
+
 router.post("/signin", userSignInController);
 router.get("/user-details", authToken, userDetailsController);
 router.get("/userLogout", userLogout);
@@ -101,7 +100,15 @@ router.post("/forgot-password", forgotPassword);
 router.post("/verify-otp", verifyOTP); // Giữ lại verify OTP cho quên mật khẩu
 router.post("/reset-password", resetPassword);
 router.post("/change-password", authToken, changePassword);
+const isAdmin = require("../middleware/isAdmin");
+const deleteOrderController = require("../controller/user/AdminDeleteOder");
+
+router.delete("/delete-orders/:id", deleteOrderController);
 
 // DÒNG BỊ LỖI TRÙNG LẶP ĐÃ ĐƯỢC LOẠI BỎ: router.post("/verify-otp", verifyOTPController);
+router.get("/2fa/setup", authToken, twoFaSetupController);
+
+// Admin Verification - Kích hoạt 2FA
+router.post("/2fa/verify", authToken, twoFaVerifyController);
 
 module.exports = router;

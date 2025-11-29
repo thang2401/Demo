@@ -2,18 +2,21 @@ const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
   {
-    name: String,
+    name: { type: String, trim: true },
     email: {
       type: String,
       unique: true,
       required: true,
+      lowercase: true,
+      trim: true,
     },
-    password: String,
-    profilePic: String,
-    role: { type: String, default: "GENERAL" },
-    otp: String,
-    otpExpires: Date,
-    otpSignUp: { type: Boolean, default: false }, // trạng thái OTP đã xác thực
+    password: { type: String },
+    profilePic: { type: String, default: "" },
+
+    role: { type: String, enum: ["GENERAL", "ADMIN"], default: "GENERAL" },
+
+    otp: { type: String },
+    otpExpires: { type: Date },
   },
   { timestamps: true }
 );
