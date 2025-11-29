@@ -25,7 +25,7 @@ const createPaymentUrl = async (req, res) => {
       vnp_Locale: "vn",
       vnp_CurrCode: "VND",
       vnp_TxnRef: orderId,
-      vnp_OrderInfo: orderInfo || "Thanh toan don hang",
+      vnp_OrderInfo: orderInfo || "Thanh toan donhang",
       vnp_OrderType: "other",
       vnp_Amount: parseInt(amount) * 100, // nhân 100 theo yêu cầu VNPay
       vnp_ReturnUrl: returnUrl,
